@@ -1,2 +1,2 @@
 # py-bot
-Telegram bot that creating images using DALL-E 3
+Async telegram bot that creating images using DALL-E 3
