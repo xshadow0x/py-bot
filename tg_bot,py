@@ -1,40 +1,38 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
-import requests
+import logging
+from aiogram import Bot, Dispatcher, executor, types
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 DALLE_API_KEY = 'YOUR_DALLE_API_KEY'
-
 TELEGRAM_BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
 
-def start(update: Update, context: CallbackContext) -> None:
-    keyboard = [
-        [InlineKeyboardButton("Generate Image", callback_data='generate_image')],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text('Welcome! Click below to generate an image.', reply_markup=reply_markup)
+logging.basicConfig(level=logging.INFO)
 
-def button(update: Update, context: CallbackContext) -> None:
-    query = update.callback_query
-    query.answer()
-    if query.data == 'generate_image':
-        query.edit_message_text(text="Generating image...")
-        # Call the function to generate image
-        image_url = generate_image()
-        query.edit_message_text(text=f"Generated Image: {image_url}")
+bot = Bot(token=TELEGRAM_BOT_TOKEN)
+dp = Dispatcher(bot)
 
-def generate_image() -> str:
+async def start(message: types.Message):
+    keyboard = InlineKeyboardMarkup().add(
+        InlineKeyboardButton("Generate Image", callback_data='generate_image')
+    )
+    await message.answer('Welcome! Click below to generate an image.', reply_markup=keyboard)
+
+async def button(call: types.CallbackQuery):
+    await call.answer()
+    if call.data == 'generate_image':
+        await call.message.edit_text("Generating image...")
+        image_url = await generate_image()
+        await call.message.edit_text(f"Generated Image: {image_url}")
+
+async def generate_image() -> str:
     # Placeholder for DALL-E API call
     # Replace this with code to call DALL-E 3 API and return the image URL
     return "https://example.com/image.jpg"
 
-def main() -> None:
-    updater = Updater(TELEGRAM_BOT_TOKEN)
-
-    updater.dispatcher.add_handler(CommandHandler('start', start))
-    updater.dispatcher.add_handler(CallbackQueryHandler(button))
-
-    updater.start_polling()
-    updater.idle()
+def register_handlers(dp: Dispatcher):
+    dp.register_message_handler(start, commands=["start"])
+    dp.register_callback_query_handler(button, lambda call: call.data == 'generate_image')
 
 if __name__ == '__main__':
-    main()
+    register_handlers(dp)
+    executor.start_polling(dp, skip_updates=True)
+
